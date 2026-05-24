@@ -1,6 +1,7 @@
 import logging
+import os
 from telegram import (
-    Update, InlineKeyboardButton, InlineKeyboardMarkup
+    Update, InlineKeyboardButton, InlineKeyboardMarkup,
 )
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
@@ -14,8 +15,10 @@ BOT_TOKEN = "8619982542:AAH4fTVME2Mrgg0CvKNHvJvlGnvQyRZ-ouo"
 ADMIN_CHAT_ID = "6901201338"
 CHANNEL_USERNAME = "@lootera_boss"
 
+# States
 (CHECK_JOIN, SELECT_PLATFORM, SELECT_PW_COURSE, SELECT_SE_COURSE,
- AWAITING_CUSTOM_COURSE, AWAITING_SCREENSHOT, AWAITING_FEEDBACK) = range(7)
+ SELECT_OTHER_COURSE, AWAITING_CUSTOM_COURSE, AWAITING_SCREENSHOT,
+ AWAITING_FEEDBACK, AWAITING_LINK) = range(9)
 
 PLATFORMS = {
     "pw": "📚 PW (Physics Wallah)",
@@ -40,7 +43,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🔄 I've Joined — Verify Me", callback_data="verify_join")]
     ]
     await update.message.reply_text(
-        f"👋 Welcome! To access our courses, please first join our official channel:\n\n"
+        "👋 Welcome! To access our courses, please first join our official channel:\n\n"
         f"👉 {CHANNEL_USERNAME}\n\n"
         "After joining, click the verify button below.",
         reply_markup=InlineKeyboardMarkup(keyboard)
@@ -71,10 +74,9 @@ async def verify_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def show_platforms(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton(label, callback_data=f"platform_{key}")]
-        for key, label in PLATFORMS.items()
-    ]
+    keyboard = []
+    for key, label in PLATFORMS.items():
+        keyboard.append([InlineKeyboardButton(label, callback_data=f"platform_{key}")])
     markup = InlineKeyboardMarkup(keyboard)
     if update.callback_query:
         await update.callback_query.message.reply_text("📚 Select your course platform:", reply_markup=markup)
@@ -112,12 +114,27 @@ async def platform_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         label = PLATFORMS.get(platform, platform)
         context.user_data["course"] = label
+        keyboard = [[InlineKeyboardButton("📸 Upload Payment Screenshot", callback_data="upload_screenshot")]]
         await query.edit_message_text(
             f"✅ Selected: *{label}*\n\n"
-            "📸 Ab apna payment screenshot bhejein (photo format mein, apna naam visible hona chahiye):",
-            parse_mode="Markdown"
+            "📸 Click the button below to upload your payment screenshot with your *name visible*:",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return AWAITING_SCREENSHOT
+
+
+async def upload_screenshot_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text(
+        "📸 **Ab niche photo upload karein:**\n\n"
+        "✅ Payment screenshot bhejein\n"
+        "✅ Apna **name visible** hona chahiye\n"
+        "✅ Photo format mein bhejein (file nahi)",
+        parse_mode="Markdown"
+    )
+    return AWAITING_SCREENSHOT
 
 
 async def pw_course_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -130,10 +147,12 @@ async def pw_course_selected(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return AWAITING_CUSTOM_COURSE
 
     context.user_data["course"] = f"PW - {course}"
+    keyboard = [[InlineKeyboardButton("📸 Upload Payment Screenshot", callback_data="upload_screenshot")]]
     await query.edit_message_text(
         f"✅ Selected: *PW - {course}*\n\n"
-        "📸 Ab apna payment screenshot bhejein (photo format mein, apna naam visible hona chahiye):",
-        parse_mode="Markdown"
+        "📸 Click the button below to upload your payment screenshot with your *name visible*:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
     return AWAITING_SCREENSHOT
 
@@ -148,10 +167,12 @@ async def se_course_selected(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return AWAITING_CUSTOM_COURSE
 
     context.user_data["course"] = f"Software Engineering - {course}"
+    keyboard = [[InlineKeyboardButton("📸 Upload Payment Screenshot", callback_data="upload_screenshot")]]
     await query.edit_message_text(
         f"✅ Selected: *Software Engineering - {course}*\n\n"
-        "📸 Ab apna payment screenshot bhejein (photo format mein, apna naam visible hona chahiye):",
-        parse_mode="Markdown"
+        "📸 Click the button below to upload your payment screenshot with your *name visible*:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
     return AWAITING_SCREENSHOT
 
@@ -159,10 +180,12 @@ async def se_course_selected(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def custom_course_entered(update: Update, context: ContextTypes.DEFAULT_TYPE):
     course = update.message.text.strip()
     context.user_data["course"] = course
+    keyboard = [[InlineKeyboardButton("📸 Upload Payment Screenshot", callback_data="upload_screenshot")]]
     await update.message.reply_text(
         f"✅ Course noted: *{course}*\n\n"
-        "📸 Ab apna payment screenshot bhejein (photo format mein, apna naam visible hona chahiye):",
-        parse_mode="Markdown"
+        "📸 Click the button below to upload your payment screenshot with your *name visible*:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
     return AWAITING_SCREENSHOT
 
@@ -182,9 +205,7 @@ async def screenshot_received(update: Update, context: ContextTypes.DEFAULT_TYPE
             f"📚 Platform: {platform}\n"
             f"📖 Course: {course}"
         )
-        keyboard = [[InlineKeyboardButton(
-            "📨 Send Course Link", callback_data=f"sendlink_{user.id}"
-        )]]
+        keyboard = [[InlineKeyboardButton("📨 Send Course Link", callback_data=f"sendlink_{user.id}")]]
         await context.bot.send_photo(
             chat_id=ADMIN_CHAT_ID,
             photo=file_id,
@@ -193,9 +214,9 @@ async def screenshot_received(update: Update, context: ContextTypes.DEFAULT_TYPE
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         await update.message.reply_text(
-            "✅ Payment screenshot submit ho gaya!\n\n"
-            "⏳ Admin review karke aapko course link bhej denge.\n"
-            "Thoda wait karein..."
+            "✅ Your payment screenshot has been submitted!\n\n"
+            "⏳ Our admin will review and send you the course link shortly.\n"
+            "Please wait..."
         )
         return ConversationHandler.END
     else:
@@ -203,28 +224,30 @@ async def screenshot_received(update: Update, context: ContextTypes.DEFAULT_TYPE
         return AWAITING_SCREENSHOT
 
 
-# ─── ADMIN HANDLERS (outside ConversationHandler) ───────────────────────────
+# --- ADMIN CONVERSATION ---
 
 async def admin_send_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Admin clicks 'Send Course Link' button on the screenshot notification."""
+    """Admin clicks 'Send Course Link' button — bot asks admin to type the link."""
     query = update.callback_query
     await query.answer()
     target_user_id = int(query.data.replace("sendlink_", ""))
-    # Store in bot_data with admin's chat_id as key to avoid conflicts
-    context.bot_data[f"send_link_to_{query.from_user.id}"] = target_user_id
+    context.user_data["send_link_to"] = target_user_id
     await query.message.reply_text(
-        f"✏️ Ab course link type karein aur send karein user `{target_user_id}` ke liye:",
+        f"✏️ Reply with the course link to send to user `{target_user_id}`:",
         parse_mode="Markdown"
     )
+    return AWAITING_LINK
 
 
 async def send_link_to_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Admin types and sends the course link."""
-    admin_key = f"send_link_to_{update.effective_user.id}"
-    if admin_key not in context.bot_data:
-        return  # Not an admin reply, ignore
+    """Admin types the link — bot forwards it to the user."""
+    if str(update.effective_chat.id) != ADMIN_CHAT_ID:
+        return ConversationHandler.END
 
-    target = context.bot_data.pop(admin_key)
+    target = context.user_data.pop("send_link_to", None)
+    if not target:
+        return ConversationHandler.END
+
     link = update.message.text.strip()
     try:
         keyboard = [[InlineKeyboardButton("⭐ Leave Feedback", callback_data="give_feedback")]]
@@ -237,28 +260,28 @@ async def send_link_to_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"✅ Link sent to user {target}.")
     except Exception as e:
         await update.message.reply_text(f"❌ Failed to send: {e}")
+    return ConversationHandler.END
 
 
-# ─── FEEDBACK HANDLERS ───────────────────────────────────────────────────────
+# --- FEEDBACK ---
 
 async def feedback_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """User clicks 'Leave Feedback' button after receiving course link."""
     query = update.callback_query
     await query.answer()
     keyboard = [
         [
-            InlineKeyboardButton("⭐ 1", callback_data="fb_1"),
-            InlineKeyboardButton("⭐⭐ 2", callback_data="fb_2"),
-            InlineKeyboardButton("⭐⭐⭐ 3", callback_data="fb_3"),
+            InlineKeyboardButton("⭐", callback_data="fb_1"),
+            InlineKeyboardButton("⭐⭐", callback_data="fb_2"),
+            InlineKeyboardButton("⭐⭐⭐", callback_data="fb_3"),
         ],
         [
-            InlineKeyboardButton("⭐⭐⭐⭐ 4", callback_data="fb_4"),
-            InlineKeyboardButton("⭐⭐⭐⭐⭐ 5", callback_data="fb_5"),
+            InlineKeyboardButton("⭐⭐⭐⭐", callback_data="fb_4"),
+            InlineKeyboardButton("⭐⭐⭐⭐⭐", callback_data="fb_5"),
         ],
         [InlineKeyboardButton("✏️ Write Custom Feedback", callback_data="fb_custom")]
     ]
     await query.message.reply_text(
-        "📝 Apna feedback dein — rating choose karein ya custom feedback likhein:",
+        "📝 Please share your feedback:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
     return AWAITING_FEEDBACK
@@ -308,43 +331,39 @@ async def feedback_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-# ─── MAIN ────────────────────────────────────────────────────────────────────
-
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
-    conv_handler = ConversationHandler(
+    # Main user conversation
+    user_conv = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
-            CHECK_JOIN: [
-                CallbackQueryHandler(verify_join, pattern="^verify_join$")
-            ],
-            SELECT_PLATFORM: [
-                CallbackQueryHandler(platform_selected, pattern="^platform_")
-            ],
-            SELECT_PW_COURSE: [
-                CallbackQueryHandler(pw_course_selected, pattern="^pwcourse_")
-            ],
-            SELECT_SE_COURSE: [
-                CallbackQueryHandler(se_course_selected, pattern="^secourse_")
-            ],
-            AWAITING_CUSTOM_COURSE: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, custom_course_entered)
-            ],
+            CHECK_JOIN: [CallbackQueryHandler(verify_join, pattern="^verify_join$")],
+            SELECT_PLATFORM: [CallbackQueryHandler(platform_selected, pattern="^platform_")],
+            SELECT_PW_COURSE: [CallbackQueryHandler(pw_course_selected, pattern="^pwcourse_")],
+            SELECT_SE_COURSE: [CallbackQueryHandler(se_course_selected, pattern="^secourse_")],
+            AWAITING_CUSTOM_COURSE: [MessageHandler(filters.TEXT & ~filters.COMMAND, custom_course_entered)],
             AWAITING_SCREENSHOT: [
+                CallbackQueryHandler(upload_screenshot_callback, pattern="^upload_screenshot$"),
                 MessageHandler(filters.PHOTO, screenshot_received),
                 MessageHandler(filters.TEXT & ~filters.COMMAND, screenshot_received),
-            ],
-            AWAITING_FEEDBACK: [
-                CallbackQueryHandler(feedback_rating, pattern="^fb_"),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, feedback_text),
             ],
         },
         fallbacks=[CommandHandler("start", start)],
         allow_reentry=True,
     )
 
-    # Feedback entry point — outside ConvHandler so it works after END
+    # Admin conversation: click sendlink → type link → send
+    admin_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_send_link, pattern="^sendlink_")],
+        states={
+            AWAITING_LINK: [MessageHandler(filters.TEXT & ~filters.COMMAND, send_link_to_user)],
+        },
+        fallbacks=[],
+        allow_reentry=True,
+    )
+
+    # Feedback conversation (triggered by inline button sent to user)
     feedback_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(feedback_prompt, pattern="^give_feedback$")],
         states={
@@ -357,14 +376,9 @@ def main():
         allow_reentry=True,
     )
 
-    app.add_handler(conv_handler)
+    app.add_handler(user_conv)
+    app.add_handler(admin_conv)
     app.add_handler(feedback_conv)
-    # Admin handlers — global, not inside any ConvHandler
-    app.add_handler(CallbackQueryHandler(admin_send_link, pattern="^sendlink_"))
-    app.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND & filters.Chat(int(ADMIN_CHAT_ID)),
-        send_link_to_user
-    ))
 
     logger.info("Bot started...")
     app.run_polling()
