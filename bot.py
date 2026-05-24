@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 BOT_TOKEN = "8619982542:AAH4fTVME2Mrgg0CvKNHvJvlGnvQyRZ-ouo"
 ADMIN_CHAT_ID = "6901201338"
-CHANNEL_USERNAME = "@free_courses_wallah_bot"
+CHANNEL_USERNAME = "@lootera_boss"
 
 # States
 (CHECK_JOIN, SELECT_PLATFORM, SELECT_PW_COURSE, SELECT_SE_COURSE,
