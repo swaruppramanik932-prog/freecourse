@@ -13,9 +13,9 @@ from telegram.ext import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
-ADMIN_CHAT_ID = "YOUR_ADMIN_CHAT_ID_HERE"
-CHANNEL_USERNAME = "@your_channel"
+BOT_TOKEN = "8619982542:AAH4fTVME2Mrgg0CvKNHvJvlGnvQyRZ-ouo"
+ADMIN_CHAT_ID = "6901201338"
+CHANNEL_USERNAME = "@free_courses_wallah_bot"
 
 # States
 (CHECK_JOIN, SELECT_PLATFORM, SELECT_PW_COURSE, SELECT_SE_COURSE,
