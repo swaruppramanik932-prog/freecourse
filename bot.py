@@ -40,7 +40,7 @@ SE_COURSES = ["Data Analyst", "MERN Stack", "Full Stack", "Other"]
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[InlineKeyboardButton("✅ Join Channel", url=f"https://t.me/{CHANNEL_USERNAME.lstrip('@')}")],
+    keyboard = [[InlineKeyboardButton("✅ Join Channel", url=f"t.me/lootera_boss")],
                 [InlineKeyboardButton("🔄 I've Joined — Verify Me", callback_data="verify_join")]]
     await update.message.reply_text(
         "👋 Welcome! To access our courses, please first join our official channel:\n\n"
